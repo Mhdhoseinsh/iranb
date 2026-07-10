@@ -2047,7 +2047,7 @@
 
                 <div class="legacy-card animate-text delay-4">
                     <div class="card-image">
-                        <img src="images/sasanidd.jpg" alt="The Sassanids" draggable="false">
+                        <img src="sasanidd.jpg" alt="The Sassanids" draggable="false">
                     </div>
                     <div class="card-content">
                         <h3 class="card-title">The Sassanids</h3>
@@ -2262,57 +2262,87 @@
             // ==============================================
             // 3. ANIMATIONS
             // ==============================================
-            var delayMap = {
-                'delay-1': 100,
-                'delay-2': 500,
-                'delay-3': 800,
-                'delay-4': 1100,
-                'delay-5': 1400,
-                'delay-6': 1700
-            };
+            // ==============================================
+// 3. ANIMATIONS (با مدیریت بارگذاری تصویر هیرو)
+// ==============================================
+var delayMap = {
+    'delay-1': 100,
+    'delay-2': 500,
+    'delay-3': 800,
+    'delay-4': 1100,
+    'delay-5': 1400,
+    'delay-6': 1700
+};
 
-            var heroItems = document.querySelectorAll('.hero-section .animate-text, .hero-section .animate-image');
-            for (var j = 0; j < heroItems.length; j++) {
-                (function(el) {
-                    var delay = 0;
-                    var classes = el.classList;
-                    for (var k = 0; k < classes.length; k++) {
-                        if (delayMap[classes[k]]) {
-                            delay = delayMap[classes[k]];
-                            break;
-                        }
-                    }
-                    setTimeout(function() {
-                        el.classList.add('visible');
-                    }, delay);
-                })(heroItems[j]);
-            }
+// ----- بخش هیرو: صبر کردن برای لود شدن عکس پس‌زمینه -----
+var heroStarted = false;
+var heroItems = document.querySelectorAll('.hero-section .animate-text, .hero-section .animate-image');
 
-            var scrollAnimations = document.querySelectorAll(
-                '.legacy-section .animate-text, .legacy-section .animate-image, ' +
-                '.impact-section .animate-text, .impact-section .animate-image, ' +
-                '.news-section .animate-text, .news-section .animate-image, ' +
-                '.newsletter-section .animate-text, footer .animate-text'
-            );
+function startHeroAnimations() {
+    if (heroStarted) return; // جلوگیری از اجرای دوباره
+    heroStarted = true;
 
-            if (typeof IntersectionObserver !== 'undefined') {
-                var observer = new IntersectionObserver(function(entries) {
-                    for (var m = 0; m < entries.length; m++) {
-                        if (entries[m].isIntersecting) {
-                            entries[m].target.classList.add('visible');
-                            observer.unobserve(entries[m].target);
-                        }
-                    }
-                }, { threshold: 0.5 });
-
-                for (var n = 0; n < scrollAnimations.length; n++) {
-                    observer.observe(scrollAnimations[n]);
-                }
-            } else {
-                for (var p = 0; p < scrollAnimations.length; p++) {
-                    scrollAnimations[p].classList.add('visible');
+    for (var j = 0; j < heroItems.length; j++) {
+        (function(el) {
+            var delay = 0;
+            var classes = el.classList;
+            for (var k = 0; k < classes.length; k++) {
+                if (delayMap[classes[k]]) {
+                    delay = delayMap[classes[k]];
+                    break;
                 }
             }
+            setTimeout(function() {
+                el.classList.add('visible');
+            }, delay);
+        })(heroItems[j]);
+    }
+}
+
+// بررسی وضعیت عکس پس‌زمینه
+var bgImg = document.querySelector('.hero-background-img');
+if (bgImg) {
+    // اگر عکس از قبل در کش مرورگر موجود است (بارگذاری مجدد صفحه)، بلافاصله اجرا کن
+    if (bgImg.complete && bgImg.naturalWidth !== 0) {
+        startHeroAnimations();
+    } else {
+        // منتظر بمان تا عکس کامل دانلود شود
+        bgImg.addEventListener('load', startHeroAnimations);
+        // یک تایم‌اوت امنیتی برای مواقعی که عکس لود نشود (خطای سرور)
+        setTimeout(startHeroAnimations, 6000);
+    }
+} else {
+    // اگر عکسی وجود نداشت، بلافاصله اجرا کن
+    startHeroAnimations();
+}
+
+// ----- انیمیشن‌های اسکرول برای سایر بخش‌ها (legacy، impact و ...) -----
+// این بخش‌ها با IntersectionObserver کار می‌کنند و نیازی به تغییر ندارند.
+var scrollAnimations = document.querySelectorAll(
+    '.legacy-section .animate-text, .legacy-section .animate-image, ' +
+    '.impact-section .animate-text, .impact-section .animate-image, ' +
+    '.news-section .animate-text, .news-section .animate-image, ' +
+    '.newsletter-section .animate-text, footer .animate-text'
+);
+
+if (typeof IntersectionObserver !== 'undefined') {
+    var observer = new IntersectionObserver(function(entries) {
+        for (var m = 0; m < entries.length; m++) {
+            if (entries[m].isIntersecting) {
+                entries[m].target.classList.add('visible');
+                observer.unobserve(entries[m].target);
+            }
+        }
+    }, { threshold: 0.5 });
+
+    for (var n = 0; n < scrollAnimations.length; n++) {
+        observer.observe(scrollAnimations[n]);
+    }
+} else {
+    for (var p = 0; p < scrollAnimations.length; p++) {
+        scrollAnimations[p].classList.add('visible');
+    }
+}
 
             // ==============================================
 // 3. LANGUAGE SWITCHER (استاندارد و کامل با فونت)
@@ -2418,18 +2448,29 @@ if (langBtn && langContainer) {
     });
 }
 
+// ========== تغییر زبان (بدون تغییر برای انگلیسی) ==========
 for (var q = 0; q < langOptions.length; q++) {
     (function(opt) {
         opt.addEventListener('click', function(e) {
-            e.preventDefault();
+            e.preventDefault(); // جلوگیری از حرکت پیش‌فرض لینک
             var lang = this.getAttribute('data-lang');
 
+            // به‌روزرسانی ظاهر منو (نشان دادن گزینه انتخاب شده)
             for (var r = 0; r < langOptions.length; r++) {
                 langOptions[r].classList.remove('active');
             }
             this.classList.add('active');
 
-            switchLanguage(lang);
+            // منطق نهایی بر اساس خواسته شما:
+            if (lang === 'en') {
+                // انگلیسی: هیچ کاری انجام نشود! (فونت و متن تغییر نمی‌کنند)
+                // فقط منو بسته می‌شود
+            } else if (lang === 'fa') {
+                // فارسی: هدایت به صفحه farsi.html
+                window.location.href = 'farsi.html';
+            }
+
+            // بستن منوی کشویی در هر دو حالت
             if (langContainer) langContainer.classList.remove('open');
         });
     })(langOptions[q]);
